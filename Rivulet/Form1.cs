@@ -23,8 +23,9 @@ namespace Rivulet
         BufferedWaveProvider soundBuffer;
         WaveOut sound;
 
-        int packetCount = 0;
-        int dropCount = 0;
+        int packetCount = -1;
+        int dropCount = -1;
+        int streamID = -1;
 
         System.Timers.Timer countDisplayTimer;
         
@@ -55,8 +56,9 @@ namespace Rivulet
         private void displayCounts(object sender, ElapsedEventArgs args)
         {
             if(!listen) { return; }
-            SafeSet(packetCount.ToString(), packets);
-            SafeSet(dropCount.ToString(), dropped);
+            SafeSet(packetCount >= 0 ? packetCount.ToString() : "", packets);
+            SafeSet(dropCount >= 0 ? dropCount.ToString() : "", dropped);
+            SafeSet(streamID == -3 ? "Waiting for stream" : streamID >= 0 ? streamID.ToString() : "", id);
         }
 
         private void setupAudio()
@@ -155,8 +157,7 @@ namespace Rivulet
             if(!header.Equals("SVSI")) { return; }
 
             // Get stream ID
-            int streamID = receivedBytes[6] + (receivedBytes[10] * 256);
-            SafeSet(streamID.ToString(), id);
+            streamID = receivedBytes[6] + (receivedBytes[10] * 256);
 
             // Check sequence IDs
             if(lastPacketID != -2) {
@@ -202,18 +203,24 @@ namespace Rivulet
             IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 50003);
             listener.Client.Bind(ipep);
             listener.JoinMulticastGroup(mIP);
+            packetCount = 0;
+            dropCount = 0;
+            lastPacketID = -2;
+            streamID = -3;
             while(listen)
             {
                 byte[] receivedBytes = listener.Receive(ref ipep);
                 processPacket(receivedBytes);
             }
+            listener.Close();
         }
 
         private void packupStream()
         {
             listen = false;
-            packets.Text = "";
-            dropped.Text = "";
+            packetCount = -1;
+            dropCount = -1;
+            streamID = -1;
         }
 
         private void button2_Click(object sender, EventArgs e)
