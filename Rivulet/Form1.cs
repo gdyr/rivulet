@@ -47,8 +47,9 @@ namespace Rivulet
 
         private void cleanExit(object sender, FormClosedEventArgs e)
         {
+            //Console.WriteLine("Exiting!");
             packupStream();
-            Application.Exit();
+            Environment.Exit(0);
         }
 
         private void displayCounts(object sender, ElapsedEventArgs args)
